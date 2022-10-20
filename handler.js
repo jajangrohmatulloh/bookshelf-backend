@@ -34,24 +34,53 @@ const addNoteHandler = (request, h) => {
     updatedAt,
   };
 
-  // const isSuccess = notes.filter((note) => note.id === id).length > 0;
+  const { bookId } = request.params;
+  const findId = notes.findIndex((note) => note.id == bookId);
 
   if (!name) {
     return h
       .response({
         status: 'fail',
-        message: 'Gagal menambahkan buku. Mohon isi nama buku',
+        message: `Gagal ${
+          bookId ? 'memperbarui' : 'menambahkan'
+        } buku. Mohon isi nama buku`,
       })
       .code(400);
   } else if (readPage > pageCount) {
     return h
       .response({
         status: 'fail',
-        message:
-          'Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount',
+        message: `Gagal ${
+          bookId ? 'memperbarui' : 'menambahkan'
+        } buku. readPage tidak boleh lebih besar dari pageCount`,
       })
       .code(400);
+  } else if (findId < 0 && request.method == 'put') {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Gagal memperbarui buku. Id tidak ditemukan',
+      })
+      .code(404);
   } else if (name && readPage <= pageCount) {
+    if (findId >= 0) {
+      notes[findId] = {
+        ...notes[findId],
+        name,
+        year,
+        author,
+        summary,
+        publisher,
+        pageCount,
+        readPage,
+        finished,
+        reading,
+        updatedAt: new Date().toISOString(),
+      };
+      return h
+        .response({ status: 'success', message: 'Buku berhasil diperbarui' })
+        .code(200);
+    }
     notes.push(newNote);
     return h
       .response({
@@ -63,6 +92,7 @@ const addNoteHandler = (request, h) => {
       })
       .code(201);
   }
+
   const response = h.response({
     status: 'error',
     message: 'Buku gagal ditambahkan',
@@ -88,7 +118,54 @@ const getAllNotesHandler = (request, h) => {
 
 const getNoteDetailHandler = (request, h) => {
   const { bookId } = request.params;
-  return h.response(bookId);
+
+  const noteDetail = notes.filter((note) => note.id == bookId)[0];
+
+  if (!noteDetail) {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Buku tidak ditemukan',
+      })
+      .code(404);
+  }
+
+  const response = h.response({
+    status: 'success',
+    data: {
+      book: noteDetail,
+    },
+  });
+  response.code(200);
+  return response;
 };
 
-module.exports = { addNoteHandler, getAllNotesHandler, getNoteDetailHandler };
+const removeNoteHandler = (request, h) => {
+  const { bookId } = request.params;
+
+  const findId = notes.findIndex((note) => note.id == bookId);
+
+  if (findId < 0) {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Buku gagal dihapus. Id tidak ditemukan',
+      })
+      .code(404);
+  }
+
+  notes.splice(findId, 1);
+  const response = h.response({
+    status: 'success',
+    message: 'Buku berhasil dihapus',
+  });
+  response.code(200);
+  return response;
+};
+
+module.exports = {
+  addNoteHandler,
+  getAllNotesHandler,
+  getNoteDetailHandler,
+  removeNoteHandler,
+};
