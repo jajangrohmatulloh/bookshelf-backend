@@ -102,7 +102,23 @@ const addNoteHandler = (request, h) => {
 };
 
 const getAllNotesHandler = (request, h) => {
-  const getNotes = notes.map((note) => {
+  const { reading, finished, name } = request.query;
+
+  const readingFiltered = reading
+    ? notes.filter((note) => note.reading == reading)
+    : undefined;
+  const finishedFiltered = finished
+    ? notes.filter((note) => note.finished == finished)
+    : undefined;
+  const nameFiltered = name
+    ? notes.filter((note) =>
+        note.name.toLowerCase().includes(name.toLowerCase())
+      )
+    : undefined;
+
+  const filtered = readingFiltered || finishedFiltered || nameFiltered || notes;
+
+  const getNotes = filtered.map((note) => {
     return { id: note.id, name: note.name, publisher: note.publisher };
   });
 
